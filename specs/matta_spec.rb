@@ -8,7 +8,7 @@ class SuperMatta < Matta
 end
 
 describe "matta's inheritence problem" do
-  setup do
+  before(:each) do
     Matta.class_eval do 
       workflow do
         state :sleeping do
