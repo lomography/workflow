@@ -82,6 +82,10 @@ module Workflow
                             end
                 @workflow.bind_to(self)
               end
+
+              Workflow.new(self).states.each do |state|
+                named_scope state, lambda { { :conditions => { :workflow_state => state.to_s } } } unless self.respond_to?(state)
+              end
             end
           end
         end

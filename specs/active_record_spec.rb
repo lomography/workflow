@@ -195,6 +195,21 @@ describe "Active Record Workflow" do
     end
   end
 
+  describe "named scopes" do
+    it "should add a named scope for each state" do
+      @item.workflow.states.each do |state|
+        Item.should respond_to(state)
+      end
+
+      @item.next
+      @item.save!
+
+      Item.create
+
+      Item.second.collect(&:state).uniq.should == [ :second ]
+    end
+  end
+
   def standard_tests(ar_object)
     ar_object.workflow.should be_kind_of(Workflow::Instance)
     ar_object.state(ar_object.state).events.should_not be_empty
