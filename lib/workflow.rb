@@ -83,6 +83,12 @@ module Workflow
                 @workflow.bind_to(self)
               end
 
+              def reload_with_workflow_state
+                reload_without_workflow_state
+                after_find
+              end
+              alias_method_chain :reload, :workflow_state
+
               Workflow.new(self).states.each do |state|
                 named_scope state, lambda { { :conditions => { :workflow_state => state.to_s } } } unless self.respond_to?(state)
               end

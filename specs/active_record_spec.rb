@@ -89,6 +89,13 @@ describe "Active Record Workflow" do
     @item.state.should == :second
   end
 
+  it 'should correctly reconsitute a workflow state after reload' do
+    @item.save
+    @item.connection.execute("update items set workflow_state = 'second' where id = #{@item.id}")
+    @item.reload
+    @item.state.should == :second
+  end
+
   it 'default to first state if workflow_state is nil in the database' do
     @item.save
     @item.connection.execute("update items set workflow_state = null where id = #{@item.id}")
