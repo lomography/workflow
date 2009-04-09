@@ -45,6 +45,7 @@ describe 'Workflow:' do
             record "#{self.class} protecting against #{theif}, the theif!"
             halt
           end
+          event :give_away, :transitions_to => :sold, :if => Proc.new { rich? }
         end
         state :sold do
           event :auction, :transitions_to => :for_sale do |reserve|
@@ -54,6 +55,13 @@ describe 'Workflow:' do
       end
       @workflow = Workflow.new
       @workflow.extend(Recorder)
+      @workflow.class.class_eval do
+        attr_accessor :rich
+
+        def rich?
+          self.rich
+        end
+      end
     end
 
     it 'should run event action in context of workflow' do
@@ -71,6 +79,14 @@ describe 'Workflow:' do
       @workflow.steal('nasty man')
       @workflow.records.last.should == "Workflow::Instance protecting against nasty man, the theif!"
       @workflow.state.should == :for_sale
+    end
+
+    it 'should not transition if given :if block evaluates to false' do
+      @workflow.rich = false
+      @workflow.should_not respond_to(:give_away)
+      @workflow.rich = true
+      @workflow.give_away
+      @workflow.state.should == :sold
     end
 
   end

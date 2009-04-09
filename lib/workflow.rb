@@ -151,7 +151,7 @@ module Workflow
     end
 
     def event(name, args = {}, &action)
-      scoped_state.add_event Event.new(name, args[:transitions_to], (args[:meta] or {}), &action)
+      scoped_state.add_event Event.new(name, args[:transitions_to], (args[:meta] or {}), args[:if], &action)
     end
 
     def on_entry(&proc)
@@ -213,7 +213,13 @@ module Workflow
     end
 
     def available_events
-      self.current_state.events
+      return [ ] if @skip_available_events # prevents recursion within method_missing
+      @skip_available_events = true
+      result = self.current_state.events.select do |e|
+        test_condition(self.current_state.events(e).condition)
+      end
+      @skip_available_events = false
+      result
     end
 
     def method_missing(name, *args)
@@ -284,9 +290,10 @@ module Workflow
       @halted_because = nil
       @halted = false
       @raise_exception_on_halt = false
+      halt!("condition on #{name} didn't pass") unless test_condition(event.condition, *args)
       # i don't think we've tested that the return value is
       # what the action returns... so yeah, test it, at some point.
-      return_value = run_action(event.action, *args)
+      return_value = run_action(event.action, *args) unless @halted
       if @halted
         if @raise_exception_on_halt
           raise TransitionHalted.new(@halted_because)
@@ -348,6 +355,10 @@ module Workflow
       end
     end
 
+    def test_condition(condition, *args)
+      return true if condition.nil?
+      context.instance_exec(*args, &condition)
+    end
   end
 
   class State
@@ -374,10 +385,10 @@ module Workflow
 
   class Event
 
-    attr_accessor :name, :transitions_to, :meta, :action
+    attr_accessor :name, :transitions_to, :meta, :action, :condition
 
-    def initialize(name, transitions_to, meta = {}, &action)
-      @name, @transitions_to, @meta, @action = name, transitions_to, meta, action
+    def initialize(name, transitions_to, meta = {}, condition = Proc.new { true }, &action)
+      @name, @transitions_to, @meta, @condition, @action = name, transitions_to, meta, condition, action
     end
 
   end
