@@ -57,48 +57,50 @@ module Workflow
     def append_features(receiver)
       if active_record?(receiver)
         receiver.instance_eval do
-          def workflow(name = :workflow, bind = true, &specification)
+          def workflow(workflow_name = :workflow, bind = true, &specification)
+            workflow_name = workflow_name.to_s
+
             Workflow.logger.debug "Adding Workflow to ActiveRecord object #{self}"
-            Workflow.specify("#{self.name}-#{name.to_s}", &specification)
+            Workflow.specify("#{name}-#{workflow_name}", &specification)
 
-            class_eval <<-FUCKYOU
-              attr_accessor :#{name.to_s}
+            class_eval <<-RUBY
+              attr_accessor :#{workflow_name}
 
-              def initialize_with_#{name.to_s}(attributes = nil)
+              def initialize_with_#{workflow_name}(attributes = nil)
                 Workflow.logger.debug "calling Workflow's redefined initializer"
-                initialize_without_#{name.to_s}(attributes)
-                @#{name.to_s} = Workflow.new(\"#{self.name}-#{name.to_s}\")
-                @#{name.to_s}.bind_to(self) if #{bind}
-                self.#{name.to_s}_state = Workflow.new(\"#{self.name}-#{name.to_s}\").state.to_s if #{name.to_s}_state.nil?
+                initialize_without_#{workflow_name}(attributes)
+                @#{workflow_name} = Workflow.new(\"#{name}-#{workflow_name}\")
+                @#{workflow_name}.bind_to(self) if #{bind}
+                self.#{workflow_name}_state = Workflow.new(\"#{name}-#{workflow_name}\").state.to_s if #{workflow_name}_state.nil?
               end
-              alias_method_chain :initialize, :#{name.to_s}
+              alias_method_chain :initialize, :#{workflow_name}
 
               unless method_defined?(:after_find)
                 def after_find; end;
               end
 
-              def after_find_with_#{name.to_s}
+              def after_find_with_#{workflow_name}
                 Workflow.logger.debug "after find called"
-                @#{name.to_s} = if #{name.to_s}_state.nil?
-                              Workflow.new(\"#{self.name}-#{name.to_s}\")
+                @#{workflow_name} = if #{workflow_name}_state.nil?
+                              Workflow.new(\"#{name}-#{workflow_name}\")
                             else
-                              Workflow.reconstitute(#{name.to_s}_state.to_sym, \"#{self.name}-#{name.to_s}\")
+                              Workflow.reconstitute(#{workflow_name}_state.to_sym, \"#{name}-#{workflow_name}\")
                             end
-                @#{name.to_s}.bind_to(self) if #{bind}
-                after_find_without_#{name.to_s}
+                @#{name}.bind_to(self) if #{bind}
+                after_find_without_#{workflow_name}
               end
-              alias_method_chain :after_find, :#{name.to_s} 
+              alias_method_chain :after_find, :#{workflow_name}
 
-              def reload_with_#{name.to_s}_state
-                reload_without_#{name.to_s}_state
+              def reload_with_#{workflow_name}_state
+                reload_without_#{workflow_name}_state
                 after_find
               end
-              alias_method_chain :reload, :#{name.to_s}_state
+              alias_method_chain :reload, :#{workflow_name}_state
 
-              Workflow.new(\"#{self.name}-#{name.to_s}\").states.each do |state|
-                named_scope state, lambda { { :conditions => { :#{name.to_s}_state => state.to_s } } } unless self.respond_to?(state)
+              Workflow.new(\"#{name}-#{workflow_name}\").states.each do |state|
+                named_scope state, lambda { { :conditions => { :#{workflow_name}_state => state.to_s } } } unless respond_to?(state)
               end
-            FUCKYOU
+            RUBY
           end
         end
       else
