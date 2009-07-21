@@ -339,7 +339,10 @@ module Workflow
     def transition(from, to, name, *args)
       run_on_exit(from, to, name, *args)
       self.current_state = to
-      @context.workflow_state = to.name.to_s if active_record?(@context)   # may not have been defined when bind_to is called
+      if active_record?(@context)
+        @context.workflow_state = to.name.to_s    # may not have been defined when bind_to is called
+        @context.workflow_state_changed_at = Time.now if @context.has_attribute?("workflow_state_changed_at")
+      end
       run_on_entry(to, from, name, *args)
     end
 
