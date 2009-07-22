@@ -86,7 +86,7 @@ module Workflow
                             else
                               Workflow.reconstitute(#{workflow_name}_state.to_sym, \"#{name}-#{workflow_name}\")
                             end
-                @#{name}.bind_to(self) if #{bind}
+                @#{workflow_name}.bind_to(self) if #{bind}
                 after_find_without_#{workflow_name}
               end
               alias_method_chain :after_find, :#{workflow_name}
