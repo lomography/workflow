@@ -98,7 +98,7 @@ module Workflow
               alias_method_chain :reload, :#{workflow_name}_state
 
               Workflow.new(\"#{name}-#{workflow_name}\").states.each do |state|
-                named_scope state, { :conditions => { :#{workflow_name}_state => state.to_s } } unless respond_to?(state)
+                scope state, { :conditions => { :#{workflow_name}_state => state.to_s } } unless respond_to?(state)
               end
             RUBY
           end
